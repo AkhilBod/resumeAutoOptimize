@@ -360,3 +360,22 @@ chrome.runtime.onStartup.addListener(() => {
 chrome.runtime.onSuspend.addListener(() => {
     console.log('Resume Tailor AI extension suspended');
 });
+
+// Handle extension action click - toggle between popup and side panel
+chrome.action.onClicked.addListener(async (tab) => {
+    // Check if side panel is supported
+    if (chrome.sidePanel) {
+        try {
+            await chrome.sidePanel.open({ windowId: tab.windowId });
+        } catch (error) {
+            console.log('Side panel not available, falling back to popup');
+        }
+    }
+});
+
+// Enable side panel on all sites
+chrome.runtime.onInstalled.addListener(() => {
+    if (chrome.sidePanel) {
+        chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+    }
+});

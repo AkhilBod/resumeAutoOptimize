@@ -1,8 +1,9 @@
 /* Resume Tailor AI - Popup Styles */
 
-/* Reset and base styles for Chrome extension popup */
+/* Reset and base styles for Chrome extension popup/side panel */
 html {
-    width: 480px;
+    width: 100%;
+    min-width: 350px;
     height: auto;
 }
 
@@ -15,13 +16,45 @@ html, body {
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    width: 480px;
+    width: 100%;
+    min-width: 350px;
     height: auto;
     min-height: 500px;
-    max-height: 600px;
     overflow-y: auto;
     margin: 0;
     padding: 0;
+}
+
+/* Side panel specific styles */
+@media (min-width: 300px) and (max-width: 500px) {
+    body {
+        min-width: 300px;
+        width: 100%;
+    }
+    
+    .container {
+        margin: 4px;
+        padding: 16px;
+    }
+    
+    .input-group {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+    }
+    
+    .input-group label {
+        min-width: auto;
+        margin-bottom: 4px;
+    }
+    
+    .header h1 {
+        font-size: 20px;
+    }
+    
+    .section h2 {
+        font-size: 14px;
+    }
 }
 
 .container {
@@ -268,18 +301,19 @@ textarea#jobDescription {
     width: 100%;
 }
 
-/* Responsive adjustments */
-@media (max-width: 450px) {
+/* Responsive adjustments for popup mode */
+@media (min-width: 500px) {
     body {
-        width: 100%;
-        min-width: 100%;
-        max-width: 100%;
+        width: 480px;
+        max-width: 480px;
     }
-    
+}
+
+/* Responsive adjustments for very narrow screens */
+@media (max-width: 320px) {
     .container {
-        margin: 4px;
-        padding: 16px;
-        width: calc(100% - 8px);
+        margin: 2px;
+        padding: 12px;
     }
     
     .input-group {
@@ -294,5 +328,9 @@ textarea#jobDescription {
     
     .result-actions {
         flex-direction: column;
+    }
+    
+    .download-buttons {
+        gap: 6px;
     }
 }
