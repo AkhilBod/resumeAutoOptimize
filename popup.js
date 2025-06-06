@@ -31,6 +31,7 @@ class ResumeTailorApp {
         document.getElementById('loadTemplate').addEventListener('click', () => this.loadDefaultTemplate());
         document.getElementById('tailorResume').addEventListener('click', () => this.tailorResume());
         document.getElementById('downloadPdf').addEventListener('click', () => this.downloadPdf());
+        document.getElementById('openOverleaf').addEventListener('click', () => this.openInOverleaf(this.tailoredResumeLatex));
         document.getElementById('copyLatex').addEventListener('click', () => this.copyLatex());
         document.getElementById('editResume').addEventListener('click', () => this.editResume());
     }
@@ -85,7 +86,7 @@ class ResumeTailorApp {
             
             document.getElementById('tailoredResume').value = tailoredResume;
             document.querySelector('.result-section').style.display = 'block';
-            document.getElementById('downloadPdf').style.display = 'block';
+            document.querySelector('.download-buttons').style.display = 'block';
             
             this.showStatus('Resume tailored successfully!', 'success');
         } catch (error) {
@@ -162,22 +163,82 @@ Please return ONLY the tailored LaTeX code, maintaining all formatting and struc
             return;
         }
 
-        this.showStatus('Generating PDF...', 'info');
+        this.showStatus('Compiling LaTeX to PDF...', 'info');
 
         try {
-            // Create a simple HTML page that will compile LaTeX to PDF
-            const htmlContent = this.createLatexCompilerPage(this.tailoredResumeLatex);
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
+            // Use LaTeX.Online API for direct PDF compilation
+            const pdfBlob = await this.compileLatexToPdf(this.tailoredResumeLatex);
             
-            // Open in new tab for manual compilation
-            chrome.tabs.create({ url: url });
+            // Create download link
+            const url = URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'tailored-resume.pdf';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
             
-            this.showStatus('LaTeX compiler opened in new tab. Use online LaTeX compiler to generate PDF.', 'success');
+            this.showStatus('PDF downloaded successfully!', 'success');
         } catch (error) {
-            this.showStatus('Failed to create download: ' + error.message, 'error');
-            console.error('Error creating download:', error);
+            this.showStatus('Failed to compile PDF: ' + error.message + ' - Try Overleaf instead', 'error');
+            console.error('Error compiling PDF:', error);
         }
+    }
+
+    async compileLatexToPdf(latexContent) {
+        // Use LaTeX.Online free API service
+        const apiUrl = 'https://latex.ytotech.com/builds/sync';
+        
+        // Create form data
+        const formData = new FormData();
+        formData.append('compiler', 'pdflatex');
+        formData.append('resources', new Blob([latexContent], { type: 'text/plain' }), 'main.tex');
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`Compilation failed: ${response.status} ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/pdf')) {
+            const text = await response.text();
+            throw new Error('Compilation failed - check LaTeX syntax');
+        }
+
+        return await response.blob();
+    }
+
+    async openInOverleaf(latexContent) {
+        // Create a form to submit the LaTeX content to Overleaf
+        const form = document.createElement('form');
+        form.action = 'https://www.overleaf.com/docs';
+        form.method = 'post';
+        form.target = '_blank';
+        form.style.display = 'none';
+
+        // Add the LaTeX content as encoded snippet
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'encoded_snip';
+        input.value = encodeURIComponent(latexContent);
+        form.appendChild(input);
+
+        // Add engine specification (pdflatex)
+        const engineInput = document.createElement('input');
+        engineInput.type = 'hidden';
+        engineInput.name = 'engine';
+        engineInput.value = 'pdflatex';
+        form.appendChild(engineInput);
+
+        // Add to document, submit, and clean up
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
     }
 
     createLatexCompilerPage(latexContent) {

@@ -257,6 +257,17 @@ textarea#jobDescription {
     background: #a8a8a8;
 }
 
+/* Download buttons container */
+.download-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.download-buttons .btn-secondary {
+    width: 100%;
+}
+
 /* Responsive adjustments */
 @media (max-width: 450px) {
     body {

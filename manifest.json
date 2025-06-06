@@ -14,7 +14,8 @@
   ],
   "host_permissions": [
     "https://api.gemini.google.com/*",
-    "https://www.overleaf.com/*"
+    "https://www.overleaf.com/*",
+    "https://latex.ytotech.com/*"
   ],
   "background": {
     "service_worker": "background.js"
