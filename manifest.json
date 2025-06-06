@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "Akhil Resume SWE 2027",
+  "name": "Resume Optimizer",
   "version": "1.0",
   "description": "AI-powered resume tailoring using Gemini AI and Overleaf API",
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Resume Tailor AI"
+    "default_title": "Resume Optimizer"
   },
   "side_panel": {
     "default_path": "popup.html"

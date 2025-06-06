@@ -173,7 +173,7 @@ Please return ONLY the tailored LaTeX code, maintaining all formatting and struc
             const url = URL.createObjectURL(pdfBlob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'tailored-resume.pdf';
+            a.download = 'Akhil Resume SWE 2027.pdf';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
