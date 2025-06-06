@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Icon Generator - Resume Tailor AI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .icon-preview {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+        canvas {
+            margin: 10px;
+            border: 1px solid #ddd;
+        }
+        .download-btn {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .download-btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Resume Tailor AI - Icon Generator</h1>
+        <p>Use this page to generate PNG icons for the Chrome extension.</p>
+        
+        <div class="icon-preview">
+            <h3>Extension Icons</h3>
+            <canvas id="icon16" width="16" height="16"></canvas>
+            <canvas id="icon48" width="48" height="48"></canvas>
+            <canvas id="icon128" width="128" height="128"></canvas>
+            <br>
+            <button class="download-btn" onclick="downloadIcon('icon16', '16')">Download 16x16</button>
+            <button class="download-btn" onclick="downloadIcon('icon48', '48')">Download 48x48</button>
+            <button class="download-btn" onclick="downloadIcon('icon128', '128')">Download 128x128</button>
+        </div>
+
+        <div class="instructions">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Click each download button to save the PNG files</li>
+                <li>Save them as icon16.png, icon48.png, and icon128.png</li>
+                <li>Place them in the icons/ folder of your extension</li>
+                <li>The extension will use these icons in Chrome</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function createIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            
+            // Create gradient background
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            
+            // Background
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Add rounded corners effect for larger icons
+            if (size >= 48) {
+                ctx.globalCompositeOperation = 'destination-in';
+                ctx.fillStyle = 'black';
+                ctx.roundRect(0, 0, size, size, size * 0.15);
+                ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+            }
+            
+            // Add text
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${Math.floor(size * 0.3)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('RT', size/2, size/2);
+            
+            // Add accent for larger icons
+            if (size >= 48) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.beginPath();
+                ctx.arc(size * 0.75, size * 0.25, size * 0.08, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+
+        function downloadIcon(canvasId, size) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = `icon${size}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // Generate icons when page loads
+        window.onload = function() {
+            createIcon(document.getElementById('icon16'), 16);
+            createIcon(document.getElementById('icon48'), 48);
+            createIcon(document.getElementById('icon128'), 128);
+        };
+
+        // Add roundRect function for older browsers
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                this.beginPath();
+                this.moveTo(x + r, y);
+                this.arcTo(x + w, y, x + w, y + h, r);
+                this.arcTo(x + w, y + h, x, y + h, r);
+                this.arcTo(x, y + h, x, y, r);
+                this.arcTo(x, y, x + w, y, r);
+                this.closePath();
+            };
+        }
+    </script>
+</body>
+</html>
