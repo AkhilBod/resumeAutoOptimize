@@ -2,55 +2,27 @@
 
 class ResumeTailorApp {
     constructor() {
-        this.geminiApiKey = '';
+        // API key embedded directly in the extension
+        this.geminiApiKey = 'AIzaSyA8Z5eTpRLFZrdN7XyWtF3XS1sKsk5SY2I';
         this.defaultResumeTemplate = this.getDefaultTemplate();
         this.tailoredResumeLatex = '';
         this.init();
     }
 
     async init() {
-        await this.loadStoredData();
         this.setupEventListeners();
         this.loadDefaultTemplate();
-    }
-
-    async loadStoredData() {
-        try {
-            const result = await chrome.storage.local.get(['geminiApiKey']);
-            if (result.geminiApiKey) {
-                this.geminiApiKey = result.geminiApiKey;
-                document.getElementById('geminiApiKey').value = this.geminiApiKey;
-            }
-        } catch (error) {
-            console.error('Error loading stored data:', error);
-        }
+        // API key is pre-configured, so show ready status
+        this.showStatus('Ready to tailor resumes! 🚀', 'success');
     }
 
     setupEventListeners() {
-        document.getElementById('saveApiKey').addEventListener('click', () => this.saveApiKey());
         document.getElementById('loadTemplate').addEventListener('click', () => this.loadDefaultTemplate());
         document.getElementById('tailorResume').addEventListener('click', () => this.tailorResume());
         document.getElementById('downloadPdf').addEventListener('click', () => this.downloadPdf());
         document.getElementById('openOverleaf').addEventListener('click', () => this.openInOverleaf(this.tailoredResumeLatex));
         document.getElementById('copyLatex').addEventListener('click', () => this.copyLatex());
         document.getElementById('editResume').addEventListener('click', () => this.editResume());
-    }
-
-    async saveApiKey() {
-        const apiKey = document.getElementById('geminiApiKey').value.trim();
-        if (!apiKey) {
-            this.showStatus('Please enter a valid API key', 'error');
-            return;
-        }
-
-        try {
-            await chrome.storage.local.set({ geminiApiKey: apiKey });
-            this.geminiApiKey = apiKey;
-            this.showStatus('API key saved successfully!', 'success');
-        } catch (error) {
-            this.showStatus('Failed to save API key', 'error');
-            console.error('Error saving API key:', error);
-        }
     }
 
     loadDefaultTemplate() {
@@ -61,11 +33,6 @@ class ResumeTailorApp {
     async tailorResume() {
         const jobDescription = document.getElementById('jobDescription').value.trim();
         const resumeTemplate = document.getElementById('resumeTemplate').value.trim();
-
-        if (!this.geminiApiKey) {
-            this.showStatus('Please save your Gemini API key first', 'error');
-            return;
-        }
 
         if (!jobDescription) {
             this.showStatus('Please enter a job description', 'error');
@@ -105,7 +72,11 @@ class ResumeTailorApp {
 3. Reorder or emphasize sections that match the job requirements
 4. Maintain professional language and accuracy
 5. Keep the same LaTeX document structure and commands
-
+6. Feel free to make up skills if they better align with the job posting
+7. DO NOT change: graduation dates, projects, company names, or position titles - keep these exactly as they are
+8. MUST maximize content to fill exactly ONE PAGE - use as much space as possible without going over
+9. You can emphasize or de-emphasize certain sections to be the best possible resume and to fit the one-page requirement  
+10. MAKE SURE IT IS THE SAME LENGTH AS THE ORIGINAL I CAN'T STRESS THIS ENOUGH.
 Job Description:
 ${jobDescription}
 
