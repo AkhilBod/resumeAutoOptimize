@@ -109,6 +109,92 @@ body {
     font-weight: 500;
 }
 
+/* PDF Preview Styles */
+.pdf-preview-section {
+    margin-top: 20px;
+}
+
+.pdf-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.preview-status {
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
+}
+
+.pdf-container {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+/* Chat/Refinement Styles */
+.refinement-section {
+    margin-top: 20px;
+}
+
+.chat-container {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.chat-history {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: white;
+    border-radius: 5px;
+    border: 1px solid #e0e0e0;
+}
+
+.chat-message {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.chat-message.user {
+    background: #e3f2fd;
+    border-left: 3px solid #2196f3;
+}
+
+.chat-message.assistant {
+    background: #f1f8e9;
+    border-left: 3px solid #4caf50;
+}
+
+.chat-message .timestamp {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 3px;
+}
+
+.chat-input-container {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+#refinementInput {
+    flex: 1;
+    resize: vertical;
+    min-height: 60px;
+}
+
+#sendRefinement {
+    padding: 10px 20px;
+    white-space: nowrap;
+}
+
 input[type="password"], input[type="text"] {
     flex: 1;
     padding: 8px 12px;

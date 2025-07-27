@@ -1,6 +1,66 @@
 // Resume Tailor AI - Popup JavaScript
 
 class ResumeTailorApp {
+    async shortenResume() {
+        const tailoredResume = document.getElementById('tailoredResume').value.trim();
+        if (!tailoredResume) {
+            this.showStatus('No tailored resume to shorten', 'error');
+            return;
+        }
+        const role = document.getElementById('roleInput') ? document.getElementById('roleInput').value.trim() : '';
+        this.setLoading(true);
+        this.showStatus('Shortening your tailored resume...', 'info');
+        try {
+            const shortened = await this.callGeminiShortenAPI(tailoredResume, role);
+            this.tailoredResumeLatex = shortened;
+            document.getElementById('tailoredResume').value = shortened;
+            this.showStatus('Resume shortened successfully!', 'success');
+        } catch (error) {
+            this.showStatus('Failed to shorten resume: ' + error.message, 'error');
+            console.error('Error shortening resume:', error);
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    async callGeminiShortenAPI(latexResume, role) {
+        const prompt = `Shorten the following LaTeX resume by removing at most one line of content (one bullet or one line anywhere), making the resume just slightly shorter. Do NOT aggressively cut or summarize. Only remove a single line that is least relevant to the target role: "${role}" if possible. Keep all formatting and structure, and do not change anything else.\n\nResume (LaTeX):\n${latexResume}\n\nReturn ONLY the slightly shortened LaTeX code, with at most one line removed.`;
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${this.geminiApiKey}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }],
+                generationConfig: {
+                    temperature: 0.7,
+                    topK: 40,
+                    topP: 0.95,
+                    maxOutputTokens: 8192,
+                }
+            })
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || 'Failed to call Gemini API');
+        }
+        const data = await response.json();
+        const shortenedContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!shortenedContent) {
+            throw new Error('No content received from Gemini API');
+        }
+        let cleanedContent = shortenedContent.trim();
+        if (cleanedContent.startsWith('```latex')) {
+            cleanedContent = cleanedContent.replace(/^```latex\n/, '').replace(/\n```$/, '');
+        } else if (cleanedContent.startsWith('```')) {
+            cleanedContent = cleanedContent.replace(/^```\n/, '').replace(/\n```$/, '');
+        }
+        return cleanedContent.trim();
+    }
     constructor() {
         // API key embedded directly in the extension
         this.geminiApiKey = 'AIzaSyA8Z5eTpRLFZrdN7XyWtF3XS1sKsk5SY2I';
@@ -23,6 +83,22 @@ class ResumeTailorApp {
         document.getElementById('openOverleaf').addEventListener('click', () => this.openInOverleaf(this.tailoredResumeLatex));
         document.getElementById('copyLatex').addEventListener('click', () => this.copyLatex());
         document.getElementById('editResume').addEventListener('click', () => this.editResume());
+        const shortenBtn = document.getElementById('shortenResume');
+        if (shortenBtn) {
+            shortenBtn.addEventListener('click', () => this.shortenResume());
+        }
+        
+        // New event listeners for PDF preview and refinements
+        document.getElementById('generatePreview').addEventListener('click', () => this.generatePdfPreview());
+        document.getElementById('sendRefinement').addEventListener('click', () => this.sendRefinement());
+        
+        // Allow Enter key to send refinements (with Shift+Enter for new lines)
+        document.getElementById('refinementInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.sendRefinement();
+            }
+        });
     }
 
     loadDefaultTemplate() {
@@ -32,6 +108,7 @@ class ResumeTailorApp {
 
     async tailorResume() {
         const jobDescription = document.getElementById('jobDescription').value.trim();
+        const role = document.getElementById('roleInput') ? document.getElementById('roleInput').value.trim() : '';
         const resumeTemplate = document.getElementById('resumeTemplate').value.trim();
 
         if (!jobDescription) {
@@ -44,16 +121,26 @@ class ResumeTailorApp {
             return;
         }
 
+        if (!role) {
+            this.showStatus('Please enter a target role', 'error');
+            return;
+        }
+
         this.setLoading(true);
         this.showStatus('Tailoring your resume with AI...', 'info');
 
         try {
-            const tailoredResume = await this.callGeminiAPI(jobDescription, resumeTemplate);
+            const tailoredResume = await this.callGeminiAPI(jobDescription, resumeTemplate, role);
             this.tailoredResumeLatex = tailoredResume;
             
             document.getElementById('tailoredResume').value = tailoredResume;
             document.querySelector('.result-section').style.display = 'block';
             document.querySelector('.download-buttons').style.display = 'block';
+            document.querySelector('.pdf-preview-section').style.display = 'block';
+            document.querySelector('.refinement-section').style.display = 'block';
+            
+            // Auto-generate PDF preview
+            setTimeout(() => this.generatePdfPreview(), 500);
             
             this.showStatus('Resume tailored successfully!', 'success');
         } catch (error) {
@@ -64,19 +151,24 @@ class ResumeTailorApp {
         }
     }
 
-    async callGeminiAPI(jobDescription, resumeTemplate) {
-        const prompt = `As an expert resume writer, please tailor the following LaTeX resume to better match the job description. Keep the same LaTeX structure and formatting, but modify the content to:
+    async callGeminiAPI(jobDescription, resumeTemplate, role) {
+        const prompt = `As an expert resume writer, please tailor the following LaTeX resume to better match the job description and the specific target role. Keep the same LaTeX structure and formatting, but modify the content to:
 
-1. Highlight relevant skills and experiences
-2. Use keywords from the job description
-3. Reorder or emphasize sections that match the job requirements
-4. Maintain professional language and accuracy
-5. Keep the same LaTeX document structure and commands
-6. Feel free to make up skills if they better align with the job posting
-7. DO NOT change: graduation dates, projects, company names, or position titles - keep these exactly as they are
-8. MUST maximize content to fill exactly ONE PAGE - use as much space as possible without going over
-9. You can emphasize or de-emphasize certain sections to be the best possible resume and to fit the one-page requirement  
+1. Better align with the job description provided
+2. Be highly tailored to the job role: "${role}". Emphasize relevant skills, experiences, and achievements for this role, and rewrite all experience/project bullet points to maximize fit for this role.
+3. Change job titles in the Experience and Projects sections to best match the target role and job description, while keeping company names unchanged.
+4. Do not change the order of sections or the overall structure
+5. Maintain professional language and accuracy
+6. Feel free to make up skills if they better align with the job posting or role
+7. DO NOT change: company names - keep these exactly as they are
+8. MUST maximize content to fill exactly ONE PAGE - use as much space as possible without going over. Meaning check the word count before and make sure the after uses the exact same amount for each section
+9. You can emphasize or de-emphasize certain sections to be the best possible resume and to fit the one-page requirement
 10. MAKE SURE IT IS THE SAME LENGTH AS THE ORIGINAL I CAN'T STRESS THIS ENOUGH.
+11. For every experience and project, rewrite the bullet points and job titles to be as relevant as possible to the role: "${role}".
+
+Target Role:
+${role}
+
 Job Description:
 ${jobDescription}
 
@@ -368,6 +460,156 @@ Please return ONLY the tailored LaTeX code, maintaining all formatting and struc
         this.showStatus('Resume is now editable', 'info');
     }
 
+    async generatePdfPreview() {
+        if (!this.tailoredResumeLatex) {
+            this.showStatus('No tailored resume to preview', 'error');
+            return;
+        }
+
+        const previewStatus = document.getElementById('previewStatus');
+        const iframe = document.getElementById('pdfPreview');
+        
+        previewStatus.textContent = 'Generating PDF preview...';
+        
+        try {
+            const pdfBlob = await this.compileLatexToPdf(this.tailoredResumeLatex);
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            
+            iframe.src = pdfUrl;
+            previewStatus.textContent = 'Preview ready! Check if it fits on one page.';
+            
+            // Clean up previous URL
+            if (this.currentPdfUrl) {
+                URL.revokeObjectURL(this.currentPdfUrl);
+            }
+            this.currentPdfUrl = pdfUrl;
+            
+        } catch (error) {
+            previewStatus.textContent = 'Preview failed - try Overleaf instead';
+            iframe.src = '';
+            console.error('Error generating preview:', error);
+        }
+    }
+
+    async sendRefinement() {
+        const refinementInput = document.getElementById('refinementInput');
+        const refinementText = refinementInput.value.trim();
+        
+        if (!refinementText) {
+            this.showStatus('Please enter a refinement request', 'error');
+            return;
+        }
+
+        if (!this.tailoredResumeLatex) {
+            this.showStatus('No resume to refine', 'error');
+            return;
+        }
+
+        // Add user message to chat
+        this.addChatMessage('user', refinementText);
+        refinementInput.value = '';
+
+        this.setLoading(true);
+        this.showStatus('Applying your refinements...', 'info');
+
+        try {
+            const refinedResume = await this.callGeminiRefinementAPI(this.tailoredResumeLatex, refinementText);
+            this.tailoredResumeLatex = refinedResume;
+            
+            document.getElementById('tailoredResume').value = refinedResume;
+            
+            // Add assistant response to chat
+            this.addChatMessage('assistant', 'I\'ve applied your requested changes to the resume.');
+            
+            // Auto-regenerate preview
+            setTimeout(() => this.generatePdfPreview(), 500);
+            
+            this.showStatus('Refinements applied successfully!', 'success');
+        } catch (error) {
+            this.addChatMessage('assistant', 'Sorry, I couldn\'t apply those changes. Please try again.');
+            this.showStatus('Failed to apply refinements: ' + error.message, 'error');
+            console.error('Error applying refinements:', error);
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    async callGeminiRefinementAPI(currentResume, refinementRequest) {
+        const prompt = `You are helping refine a LaTeX resume. The user has requested specific changes to their current resume. Please apply their requested changes while:
+
+1. Maintaining the exact same LaTeX structure and formatting
+2. Keeping the resume to exactly ONE PAGE - do not make it longer or shorter
+3. Preserving all company names and dates exactly as they are
+4. Making only the specific changes requested by the user
+5. Ensuring the output is valid LaTeX code
+
+User's refinement request: "${refinementRequest}"
+
+Current Resume (LaTeX):
+${currentResume}
+
+Please return ONLY the refined LaTeX code with the requested changes applied:`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${this.geminiApiKey}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }],
+                generationConfig: {
+                    temperature: 0.7,
+                    topK: 40,
+                    topP: 0.95,
+                    maxOutputTokens: 8192,
+                }
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || 'Failed to call Gemini API');
+        }
+
+        const data = await response.json();
+        const refinedContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (!refinedContent) {
+            throw new Error('No content received from Gemini API');
+        }
+
+        // Clean up the response - remove markdown code blocks if present
+        let cleanedContent = refinedContent.trim();
+        if (cleanedContent.startsWith('```latex')) {
+            cleanedContent = cleanedContent.replace(/^```latex\n/, '').replace(/\n```$/, '');
+        } else if (cleanedContent.startsWith('```')) {
+            cleanedContent = cleanedContent.replace(/^```\n/, '').replace(/\n```$/, '');
+        }
+
+        return cleanedContent.trim();
+    }
+
+    addChatMessage(sender, message) {
+        const chatHistory = document.getElementById('chatHistory');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${sender}`;
+        
+        const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const senderLabel = sender === 'user' ? 'You' : 'AI Assistant';
+        
+        messageDiv.innerHTML = `
+            <div class="timestamp">${timestamp} - ${senderLabel}</div>
+            <div>${message}</div>
+        `;
+        
+        chatHistory.appendChild(messageDiv);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
     setLoading(isLoading) {
         const button = document.getElementById('tailorResume');
         const buttonText = button.querySelector('.btn-text');
@@ -397,7 +639,7 @@ Please return ONLY the tailored LaTeX code, maintaining all formatting and struc
         }
     }
 
-    getDefaultTemplate() {
+     getDefaultTemplate() {
         return `%-------------------------
 % Resume in Latex
 % Author : Akhil Bodahanapati (Modified from Jake Gutierrez)
@@ -560,10 +802,9 @@ Please return ONLY the tailored LaTeX code, maintaining all formatting and struc
     {\\textbf{\\href{https://www.interviewsense.org/}{InterviewSense: AI-Powered Mock Interview}} $|$ \\emph{Node.js, PyTorch, PostgreSQL, AWS}}
     {May 2024 -- Present}
   \\resumeItemListStart
-    \\resumeItem{Leading the development of an AI-driven platform that delivers realistic, role-specific mock interviews with dynamic question generation and personalized performance feedback.}
-    \\resumeItem{Integrated wav2vec2 and fine-tuned RoBERTa/DistilBERT models to analyze speech patterns (e.g., confidence, hesitation) and semantic content, achieving 95\\% precision in identifying candidate improvement areas.}
-    \\resumeItem{Designed and implemented a modular, scalable backend with Node.js and PostgreSQL, supporting seamless updates to roles, questions, and ML models; \\textbf{onboarded 500+ interested}}
-    \\resumeItem{Building a responsive frontend using React and Tailwind CSS to ensure an intuitive, accessible user experience for interview practice and feedback review.}
+    \\resumeItem{Lead the development of an AI-driven platform that has \\textbf{over 1000+ signups}}
+    \\resumeItem{Designed and implemented a modular, scalable backend with Node.js and PostgreSQL, supporting seamless updates to roles, questions, and ML models;}
+    \\resumeItem{Built a responsive frontend using React and Tailwind CSS to ensure an intuitive, accessible user experience for interview practice and feedback review.}
     \\resumeItem{\\href{https://www.interviewsense.org/}{\\textit{Website}}}
   \\resumeItemListEnd
 
