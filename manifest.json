@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Resume Optimizer",
+  "version": "1.0",
+  "description": "AI-powered resume tailoring using Gemini AI and Overleaf API",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Resume Optimizer"
+  },
+  "side_panel": {
+    "default_path": "popup.html"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "background",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://api.gemini.google.com/*",
+    "https://www.overleaf.com/*",
+    "https://latex.ytotech.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "icons": {
+    "16": "icons/icon16.svg",
+    "48": "icons/icon48.svg",
+    "128": "icons/icon128.svg"
+  }
+}
