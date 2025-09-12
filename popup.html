@@ -9,9 +9,16 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Resume Optimizer</h1>
-            <p>Customize your resume for any job using AI</p>
-            <button id="toggleSettings" class="settings-toggle">Settings</button>
+            <div class="title-section">
+                <h1>Resume Optimizer</h1>
+                <p>Customize your resume for any job using AI</p>
+            </div>
+            <button id="toggleSettings" class="settings-toggle" title="Settings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1m15.5-3.5L19 8.5m-7 7l-2.5 2.5M4.5 4.5L7 7m7 7l2.5 2.5"></path>
+                </svg>
+            </button>
         </div>
 
         <div class="settings-section" id="settingsSection" style="display: none;">
