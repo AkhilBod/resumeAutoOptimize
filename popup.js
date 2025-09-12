@@ -62,27 +62,36 @@ class ResumeTailorApp {
         return cleanedContent.trim();
     }
     constructor() {
-        // API key embedded directly in the extension
-        this.geminiApiKey = 'AIzaSyA8Z5eTpRLFZrdN7XyWtF3XS1sKsk5SY2I';
-        this.defaultResumeTemplate = this.getDefaultTemplate();
+        // Initialize with default values - will be overridden by stored values
+        this.geminiApiKey = '';
+        this.defaultResumeTemplate = this.getBuiltInTemplate();
         this.tailoredResumeLatex = '';
         this.init();
     }
 
     async init() {
+        await this.loadSettings();
         this.setupEventListeners();
         this.loadDefaultTemplate();
-        // API key is pre-configured, so show ready status
-        this.showStatus('Ready to tailor resumes! 🚀', 'success');
+        this.updateApiStatus();
     }
 
     setupEventListeners() {
+        // Main functionality
         document.getElementById('loadTemplate').addEventListener('click', () => this.loadDefaultTemplate());
         document.getElementById('tailorResume').addEventListener('click', () => this.tailorResume());
         document.getElementById('downloadPdf').addEventListener('click', () => this.downloadPdf());
         document.getElementById('openOverleaf').addEventListener('click', () => this.openInOverleaf(this.tailoredResumeLatex));
         document.getElementById('copyLatex').addEventListener('click', () => this.copyLatex());
         document.getElementById('editResume').addEventListener('click', () => this.editResume());
+        
+        // Settings functionality
+        document.getElementById('toggleSettings').addEventListener('click', () => this.toggleSettings());
+        document.getElementById('saveApiKey').addEventListener('click', () => this.saveApiKey());
+        document.getElementById('testApiKey').addEventListener('click', () => this.testApiKey());
+        document.getElementById('saveDefaultResume').addEventListener('click', () => this.saveDefaultResume());
+        document.getElementById('resetDefaultResume').addEventListener('click', () => this.resetDefaultResume());
+        document.getElementById('saveAsDefault').addEventListener('click', () => this.saveCurrentAsDefault());
         const shortenBtn = document.getElementById('shortenResume');
         if (shortenBtn) {
             shortenBtn.addEventListener('click', () => this.shortenResume());
@@ -99,11 +108,6 @@ class ResumeTailorApp {
                 this.sendRefinement();
             }
         });
-    }
-
-    loadDefaultTemplate() {
-        document.getElementById('resumeTemplate').value = this.defaultResumeTemplate;
-        this.showStatus('Default template loaded', 'info');
     }
 
     async tailorResume() {
@@ -135,7 +139,7 @@ class ResumeTailorApp {
             
             document.getElementById('tailoredResume').value = tailoredResume;
             document.querySelector('.result-section').style.display = 'block';
-            document.querySelector('.download-buttons').style.display = 'block';
+            document.querySelector('.download-section').style.display = 'block';
             document.querySelector('.pdf-preview-section').style.display = 'block';
             document.querySelector('.refinement-section').style.display = 'block';
             
@@ -688,7 +692,154 @@ Please return ONLY the refined LaTeX code with the requested changes applied int
         }
     }
 
-     getDefaultTemplate() {
+    // Settings Management Methods
+    async loadSettings() {
+        try {
+            const result = await chrome.storage.local.get(['geminiApiKey', 'defaultResumeTemplate']);
+            
+            if (result.geminiApiKey) {
+                this.geminiApiKey = result.geminiApiKey;
+                document.getElementById('apiKeyInput').value = result.geminiApiKey;
+            }
+            
+            if (result.defaultResumeTemplate) {
+                this.defaultResumeTemplate = result.defaultResumeTemplate;
+                document.getElementById('defaultResumeInput').value = result.defaultResumeTemplate;
+            }
+        } catch (error) {
+            console.error('Error loading settings:', error);
+            this.showStatus('Error loading settings', 'error');
+        }
+    }
+
+    async saveApiKey() {
+        const apiKey = document.getElementById('apiKeyInput').value.trim();
+        
+        if (!apiKey) {
+            this.showStatus('Please enter an API key', 'error');
+            return;
+        }
+
+        try {
+            await chrome.storage.local.set({ geminiApiKey: apiKey });
+            this.geminiApiKey = apiKey;
+            this.showStatus('API key saved successfully', 'success');
+            this.updateApiStatus();
+        } catch (error) {
+            console.error('Error saving API key:', error);
+            this.showStatus('Error saving API key', 'error');
+        }
+    }
+
+    async testApiKey() {
+        const apiKey = document.getElementById('apiKeyInput').value.trim() || this.geminiApiKey;
+        
+        if (!apiKey) {
+            this.showStatus('Please enter an API key first', 'error');
+            return;
+        }
+
+        this.showStatus('Testing API connection...', 'info');
+
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: 'Test connection' }] }],
+                    generationConfig: { maxOutputTokens: 10 }
+                })
+            });
+
+            if (response.ok) {
+                this.showStatus('API connection successful!', 'success');
+            } else {
+                this.showStatus('API key is invalid or expired', 'error');
+            }
+        } catch (error) {
+            console.error('Error testing API:', error);
+            this.showStatus('Error testing API connection', 'error');
+        }
+    }
+
+    async saveDefaultResume() {
+        const template = document.getElementById('defaultResumeInput').value.trim();
+        
+        if (!template) {
+            this.showStatus('Please enter a resume template', 'error');
+            return;
+        }
+
+        try {
+            await chrome.storage.local.set({ defaultResumeTemplate: template });
+            this.defaultResumeTemplate = template;
+            this.showStatus('Default resume template saved', 'success');
+        } catch (error) {
+            console.error('Error saving template:', error);
+            this.showStatus('Error saving template', 'error');
+        }
+    }
+
+    async resetDefaultResume() {
+        const builtInTemplate = this.getBuiltInTemplate();
+        
+        try {
+            await chrome.storage.local.set({ defaultResumeTemplate: builtInTemplate });
+            this.defaultResumeTemplate = builtInTemplate;
+            document.getElementById('defaultResumeInput').value = builtInTemplate;
+            this.showStatus('Reset to original template', 'success');
+        } catch (error) {
+            console.error('Error resetting template:', error);
+            this.showStatus('Error resetting template', 'error');
+        }
+    }
+
+    async saveCurrentAsDefault() {
+        const currentTemplate = document.getElementById('resumeTemplate').value.trim();
+        
+        if (!currentTemplate) {
+            this.showStatus('No resume template to save', 'error');
+            return;
+        }
+
+        try {
+            await chrome.storage.local.set({ defaultResumeTemplate: currentTemplate });
+            this.defaultResumeTemplate = currentTemplate;
+            document.getElementById('defaultResumeInput').value = currentTemplate;
+            this.showStatus('Current template saved as default', 'success');
+        } catch (error) {
+            console.error('Error saving current template:', error);
+            this.showStatus('Error saving template', 'error');
+        }
+    }
+
+    toggleSettings() {
+        const settingsSection = document.getElementById('settingsSection');
+        const toggleButton = document.getElementById('toggleSettings');
+        
+        if (settingsSection.style.display === 'none') {
+            settingsSection.style.display = 'block';
+            toggleButton.textContent = 'Hide Settings';
+        } else {
+            settingsSection.style.display = 'none';
+            toggleButton.textContent = 'Settings';
+        }
+    }
+
+    updateApiStatus() {
+        if (this.geminiApiKey) {
+            this.showStatus('Ready to tailor resumes!', 'success');
+        } else {
+            this.showStatus('Please set your API key in Settings', 'error');
+        }
+    }
+
+    loadDefaultTemplate() {
+        document.getElementById('resumeTemplate').value = this.defaultResumeTemplate;
+        this.showStatus('Default template loaded', 'info');
+    }
+
+     getBuiltInTemplate() {
         return `%-------------------------
 % Resume in Latex
 % Author : Akhil Bodahanapati (Modified from Jake Gutierrez)

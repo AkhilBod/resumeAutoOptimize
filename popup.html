@@ -9,70 +9,110 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎯 Resume Optimizer</h1>
+            <h1>Resume Optimizer</h1>
             <p>Customize your resume for any job using AI</p>
+            <button id="toggleSettings" class="settings-toggle">Settings</button>
         </div>
 
-
-        <div class="section">
-            <h2>🎯 Target Role</h2>
-            <input id="roleInput" type="text" placeholder="e.g. Software Engineer, Data Scientist, etc." style="width:100%;margin-bottom:10px;" />
+        <div class="settings-section" id="settingsSection" style="display: none;">
+            <h2>Settings</h2>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label for="apiKeyInput">Gemini API Key</label>
+                    <div class="input-container">
+                        <input id="apiKeyInput" type="password" placeholder="Enter your Gemini API key..." />
+                    </div>
+                    <div class="setting-actions">
+                        <button id="saveApiKey" class="btn-secondary">Save API Key</button>
+                        <button id="testApiKey" class="btn-secondary">Test Connection</button>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label for="defaultResumeInput">Default Resume Template</label>
+                    <div class="input-container">
+                        <textarea id="defaultResumeInput" placeholder="Paste your default LaTeX resume template here..." rows="8"></textarea>
+                    </div>
+                    <div class="setting-actions">
+                        <button id="saveDefaultResume" class="btn-secondary">Save as Default</button>
+                        <button id="resetDefaultResume" class="btn-secondary">Reset to Original</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="section">
-            <h2>📄 Job Description</h2>
-            <textarea id="jobDescription" placeholder="Paste the job description here..." rows="6"></textarea>
+            <h2>Target Role</h2>
+            <div class="input-container">
+                <input id="roleInput" type="text" placeholder="e.g. Software Engineer, Data Scientist, etc." />
+            </div>
         </div>
 
         <div class="section">
-            <h2>📋 Resume Template</h2>
-            <textarea id="resumeTemplate" placeholder="Your LaTeX resume template will appear here..." rows="8"></textarea>
-            <button id="loadTemplate" class="btn-secondary">Load Default Template</button>
+            <h2>Job Description</h2>
+            <div class="input-container">
+                <textarea id="jobDescription" placeholder="Paste the job description here..." rows="6"></textarea>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Resume Template</h2>
+            <div class="input-container">
+                <textarea id="resumeTemplate" placeholder="Your LaTeX resume template will appear here..." rows="8"></textarea>
+            </div>
+            <div class="section-actions">
+                <button id="loadTemplate" class="btn-secondary">Load Default Template</button>
+                <button id="saveAsDefault" class="btn-secondary">Save Current as Default</button>
+            </div>
         </div>
 
         <div class="actions">
             <button id="tailorResume" class="btn-primary">
-                <span class="btn-text">🚀 Tailor Resume</span>
+                <span class="btn-text">Tailor Resume</span>
                 <span class="loader" style="display: none;"></span>
             </button>
-            <div class="download-buttons" style="display: none;">
-                <button id="downloadPdf" class="btn-success">
-                    📥 Download PDF
-                </button>
-                <button id="openOverleaf" class="btn-secondary" style="margin-top: 8px;">
-                    🚀 Open in Overleaf
-                </button>
+        </div>
+
+        <div class="download-section" style="display: none;">
+            <div class="download-buttons">
+                <button id="downloadPdf" class="btn-success">Download PDF</button>
+                <button id="openOverleaf" class="btn-secondary">Open in Overleaf</button>
             </div>
         </div>
 
         <div class="result-section" style="display: none;">
-            <h2>✨ Tailored Resume</h2>
-            <textarea id="tailoredResume" readonly rows="8"></textarea>
+            <h2>Tailored Resume</h2>
+            <div class="input-container">
+                <textarea id="tailoredResume" readonly rows="8"></textarea>
+            </div>
             <div class="result-actions">
-                <button id="copyLatex" class="btn-secondary">📋 Copy LaTeX</button>
-                <button id="editResume" class="btn-secondary">✏️ Edit</button>
-                <button id="shortenResume" class="btn-secondary">✂️ Shorten</button>
+                <button id="copyLatex" class="btn-secondary">Copy LaTeX</button>
+                <button id="editResume" class="btn-secondary">Edit</button>
+                <button id="shortenResume" class="btn-secondary">Shorten</button>
             </div>
         </div>
 
         <div class="pdf-preview-section" style="display: none;">
-            <h2>📄 PDF Preview</h2>
+            <h2>PDF Preview</h2>
             <div class="pdf-controls">
-                <button id="generatePreview" class="btn-secondary">🔄 Generate Preview</button>
+                <button id="generatePreview" class="btn-secondary">Generate Preview</button>
                 <span id="previewStatus" class="preview-status"></span>
             </div>
             <div class="pdf-container">
-                <iframe id="pdfPreview" style="width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 5px;"></iframe>
+                <iframe id="pdfPreview"></iframe>
             </div>
         </div>
 
         <div class="refinement-section" style="display: none;">
-            <h2>💬 Refine Resume</h2>
+            <h2>Refine Resume</h2>
             <div class="chat-container">
                 <div id="chatHistory" class="chat-history"></div>
-                <div class="chat-input-container">
-                    <textarea id="refinementInput" placeholder="Tell me what changes you'd like (e.g., 'make the skills section more technical', 'emphasize leadership experience', 'add more quantified results')..." rows="3"></textarea>
-                    <button id="sendRefinement" class="btn-primary">🚀 Apply Changes</button>
+                <div class="chat-input-section">
+                    <div class="input-container">
+                        <textarea id="refinementInput" placeholder="Tell me what changes you'd like (e.g. 'make the skills section more technical', 'emphasize leadership experience', 'add more quantified results')..." rows="3"></textarea>
+                    </div>
+                    <div class="chat-actions">
+                        <button id="sendRefinement" class="btn-primary">Apply Changes</button>
+                    </div>
                 </div>
             </div>
         </div>
